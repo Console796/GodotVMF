@@ -72,6 +72,15 @@ var navmesh: NavigationRegion3D:
 
 var has_imported_resources = false;
 
+## Emitted once the VMF is read, before geometry import, in the editor and at runtime.
+signal structure_read;
+
+## Project setting listing scripts to run once the VMF is read. Each script must be
+## instantiable and define process_structure(node: VMFNode). They run before
+## import_geometry(), which removes merged faces from vmf_structure, so they see every
+## solid intact. Used for derived data such as acoustics.
+const STRUCTURE_HOOKS_SETTING = "godot_vmf/import/structure_hooks";
+
 func _validate_property(property: Dictionary) -> void:
 	if property.name == "vmf":
 		property.hint = PROPERTY_HINT_GLOBAL_FILE if use_external_file else PROPERTY_HINT_FILE
@@ -95,7 +104,22 @@ func reimport_geometry() -> void:
 
 	await VMFResourceManager.for_resource_import();
 
+	run_structure_hooks();
 	import_geometry();
+
+func run_structure_hooks() -> void:
+	structure_read.emit();
+	for path in ProjectSettings.get_setting(STRUCTURE_HOOKS_SETTING, PackedStringArray()):
+		var script := load(path) as Script;
+		if not script or not script.can_instantiate():
+			VMFLogger.error("Structure hook \"%s\" is not an instantiable script." % path);
+			continue;
+		var hook = script.new();
+		if not hook.has_method("process_structure"):
+			VMFLogger.error("Structure hook \"%s\" has no process_structure(node) method." % path);
+			continue;
+		hook.process_structure(self);
+		if hook is Node: hook.free();
 
 func import_geometry() -> void:
 	var _t := Time.get_ticks_msec();
@@ -304,5 +328,6 @@ func import_map() -> void:
 
 	await VMFResourceManager.for_resource_import();
 
+	run_structure_hooks();
 	import_geometry();
 	import_entities();

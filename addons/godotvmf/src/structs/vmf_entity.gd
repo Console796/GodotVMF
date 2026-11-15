@@ -15,17 +15,14 @@ func _init(raw: Dictionary) -> void:
 	id = int(raw.get("id", -1));
 	classname = raw.get("classname", "");
 	data = raw;
-	has_solid = "solid" in raw and raw.solid is Dictionary;
 	angles = raw.get("angles", Vector3.ZERO);
 	origin = raw.get("origin", Vector3.ZERO);
 
-	if has_solid:
-		var raw_solids: Variant = raw.get("solid", []);
-		if raw_solids is not Array:
-			raw_solids = [raw_solids];
-
-		for solid in raw_solids:
+	# A brush entity with several solids parses as an Array; hidden ones sit in "hidden".
+	for solid in VMFStructure.collect(raw, "solid"):
+		if solid is Dictionary:
 			solids.append(VMFSolid.new(solid));
+	has_solid = not solids.is_empty();
 
 func _to_string() -> String:
 	return "VMFEntity(id=%d, has_solid=%s, solids=%d)" % [id, has_solid, solids.size()];

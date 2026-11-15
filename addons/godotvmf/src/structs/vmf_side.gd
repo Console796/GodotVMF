@@ -13,7 +13,10 @@ var plane_points: PackedVector3Array;
 var vertices: PackedVector3Array;
 var is_displacement: bool = false;
 var dispinfo: VMFDisplacementInfo;
-var solid: VMFSolid;
+# Weak, so solid <-> side doesn't form a RefCounted cycle that leaks every parsed map.
+var _solid_ref: WeakRef;
+var solid: VMFSolid:
+	get: return _solid_ref.get_ref() if _solid_ref else null;
 var uv: Vector2 = Vector2.ZERO;
 
 func _to_string() -> String:
@@ -24,7 +27,7 @@ func _init(raw: Dictionary, _solid: VMFSolid) -> void:
 	material = raw.get("material", "");
 	is_displacement = "dispinfo" in raw;
 	smoothing_groups = raw.get("smoothing_groups", 0);
-	solid = _solid;
+	_solid_ref = weakref(_solid);
 	plane = raw.plane.value;
 
 	vaxis = VMFTexCoord.new(raw.vaxis);

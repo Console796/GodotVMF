@@ -3,20 +3,23 @@ class_name VMFStructure extends RefCounted
 var solids: Array[VMFSolid] = [];
 var entities: Array[VMFEntity] = [];
 
+## Returns raw[key] as an Array, including the copies Hammer moves into "hidden" blocks
+## when objects are hidden in the editor (they are still compiled).
+static func collect(raw: Dictionary, key: String) -> Array:
+	var result := [];
+	for container in [raw] + as_array(raw.get("hidden", [])):
+		if container is Dictionary:
+			result.append_array(as_array(container.get(key, [])));
+	return result;
+
+static func as_array(value: Variant) -> Array:
+	return value if value is Array else [value];
+
 func _init(raw: Dictionary) -> void:
-	var raw_solids: Variant = raw.world.get("solid", []);
-
-	if raw_solids is not Array:
-		raw_solids = [raw_solids];
-
-	for solid in raw_solids:
+	for solid in collect(raw.world, "solid"):
 		solids.append(VMFSolid.new(solid));
 
-	var raw_entities: Variant = raw.get("entity", []);
-	if raw_entities is not Array:
-		raw_entities = [raw_entities];
-
-	for entity in raw_entities:
+	for entity in collect(raw, "entity"):
 		entities.append(VMFEntity.new(entity));
 
 func _to_string() -> String:

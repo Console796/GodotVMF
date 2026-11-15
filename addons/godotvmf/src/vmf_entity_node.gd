@@ -22,8 +22,12 @@ static func remove_alias(name: String):
 @export var enabled := true;
 @export var flags: int = 0;
 
+## The entity's raw solids, including ones hidden in Hammer.
+var brush_solids: Array:
+	get: return VMFStructure.collect(entity, "solid");
+
 var has_solid: bool:
-	get: return "solid" in entity;
+	get: return not brush_solids.is_empty();
 
 var config := VMFConfig;
 var reference: VMFEntity;
@@ -210,7 +214,7 @@ func trigger_output(output) -> void:
 func get_mesh(cleanup = true, lods = true, offset: Vector3 = global_position) -> ArrayMesh:
 	if not has_solid: return null;
 
-	var solids = entity.solid if entity.solid is Array else [entity.solid];
+	var solids = brush_solids;
 
 	var struct := VMFStructure.new({
 		'source': entity.classname + '_' + str(entity.id),
@@ -257,7 +261,7 @@ static func get_movement_vector(v) -> Vector3:
 
 ## Returns the shape of the entity that depends on solids that it have
 func get_entity_shape() -> Shape3D:
-	var use_convex_shape = entity.solid is Dictionary or entity.solid.size() == 1;
+	var use_convex_shape = brush_solids.size() == 1;
 
 	if use_convex_shape:
 		return get_entity_convex_shape();
@@ -268,7 +272,7 @@ func get_entity_shape() -> Shape3D:
 func get_entity_convex_shape() -> ConvexPolygonShape3D:
 	if not has_solid: return null;
 
-	var solids = entity.solid if entity.solid is Array else [entity.solid];
+	var solids = brush_solids;
 	var struct := VMFStructure.new({
 		'world': {
 			'solid': solids,
@@ -284,7 +288,7 @@ func get_entity_convex_shape() -> ConvexPolygonShape3D:
 func get_entity_trimesh_shape() -> ConcavePolygonShape3D:
 	if not has_solid: return null;
 
-	var solids = entity.solid if entity.solid is Array else [entity.solid];
+	var solids = brush_solids;
 	var combiner = CSGCombiner3D.new();
 
 	for solid in solids:
@@ -308,7 +312,7 @@ func get_entity_trimesh_shape() -> ConcavePolygonShape3D:
 func get_separated_collisions() -> Array[CollisionShape3D]:
 	var collisions: Array[CollisionShape3D] = [];
 
-	var solids = entity.solid if entity.solid is Array else [entity.solid];
+	var solids = brush_solids;
 	for solid in solids:
 		var struct = { 'world': { 'solid': [solid] } };
 		var mesh = VMFTool.create_mesh(struct, global_position);
