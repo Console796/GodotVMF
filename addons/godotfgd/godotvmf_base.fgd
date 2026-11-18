@@ -1,0 +1,114 @@
+// GodotVMF's base classes and the entities GodotVMF itself implements.
+// The generated project FGD @includes this first, so your own entity scripts can redefine any of it.
+
+@BaseClass = Targetname
+[
+	targetname(target_source) : "Name" : : "The name that other entities refer to this entity by."
+]
+
+@BaseClass = Parentname
+[
+	parentname(target_destination) : "Parent" : : "The name of this entity's parent, to move with it."
+]
+
+@BaseClass = Origin
+[
+	origin(origin) : "Origin (X Y Z)" : : "The position of this entity's center in the world."
+]
+
+@BaseClass = Angles
+[
+	angles(angle) : "Pitch Yaw Roll (Y Z X)" : "0 0 0" : "This entity's orientation in the world."
+]
+
+@BaseClass = EnableDisable
+[
+	StartDisabled(choices) : "Start Disabled" : 0 =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+]
+
+@SolidClass = func_detail : "World geometry that doesn't split visibility. GodotVMF merges it into the map's mesh."
+[
+]
+
+@PointClass base(Targetname, Angles) instance() = func_instance : "Places another map (an instance) here. GodotVMF imports it as a child map."
+[
+	file(instance_file) : "VMF Filename" : : "The map to place, relative to this map or the instances folder."
+	fixup_style(choices) : "Entity Name Fix Up" : 0 =
+	[
+		0 : "Prefix"
+		1 : "Postfix"
+		2 : "None"
+	]
+]
+
+@BaseClass base(Targetname, Parentname, Origin) = GodotVMFLight
+[
+	_light(color255) : "Brightness" : "255 255 255 200" : "Color and brightness of the light."
+	style(choices) : "Appearance" : 0 =
+	[
+		0 : "Normal"
+		1 : "Flicker A"
+		2 : "Slow, strong pulse"
+		3 : "Candle A"
+		4 : "Fast strobe"
+		5 : "Gentle pulse"
+		6 : "Flicker B"
+		7 : "Candle B"
+		8 : "Candle C"
+		9 : "Slow strobe"
+		10 : "Fluorescent flicker"
+		11 : "Slow pulse"
+	]
+	_zero_percent_distance(float) : "0 Percent Falloff Distance" : 0 : "Distance at which the light reaches zero (0: from brightness)."
+	_fifty_percent_distance(float) : "50 Percent Falloff Distance" : 0 : "Distance at which the light is at half brightness."
+	spawnflags(flags) =
+	[
+		1 : "Initially dark" : 0
+	]
+]
+
+@PointClass base(GodotVMFLight) iconsprite("editor/light.vmt") sphere(_zero_percent_distance) = light : "An omnidirectional light. GodotVMF makes it an OmniLight3D."
+[
+]
+
+@PointClass base(GodotVMFLight, Angles) iconsprite("editor/light_spot.vmt") frustum(_cone, 0, _zero_percent_distance) = light_spot : "A cone-shaped light. GodotVMF makes it a SpotLight3D."
+[
+	_cone(integer) : "Outer (fading) angle" : 45
+	pitch(angle_negative_pitch) : "Pitch" : -90
+]
+
+@PointClass base(Angles) iconsprite("editor/light_env.vmt") = light_environment : "The sun. GodotVMF makes it a DirectionalLight3D; the first one in a map wins."
+[
+	_light(color255) : "Brightness" : "255 255 255 200"
+	pitch(angle_negative_pitch) : "Pitch" : 0
+]
+
+@PointClass base(Targetname, Parentname, Angles) studioprop() = prop_studio : "A model. GodotVMF instances the imported model scene."
+[
+	model(studio) : "World Model" : : "The model, as a path under models/."
+	skin(integer) : "Skin" : 0
+	modelscale(float) : "Model Scale" : "1.0"
+]
+
+@PointClass base(Angles) studioprop() = prop_static : "A static model. GodotVMF merges it into the map's static props."
+[
+	model(studio) : "World Model" : : "The model, as a path under models/."
+	skin(integer) : "Skin" : 0
+	modelscale(float) : "Model Scale" : "1.0"
+	solid(choices) : "Collisions" : 6 =
+	[
+		0 : "Not Solid"
+		6 : "Use VPhysics"
+	]
+	screenspacefade(choices) : "Screen Space Fade" : 0 =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	fademindist(float) : "Start Fade Dist" : 0
+	fademaxdist(float) : "End Fade Dist" : 0
+]

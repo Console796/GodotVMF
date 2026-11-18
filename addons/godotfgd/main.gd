@@ -41,64 +41,120 @@ const TYPE_DICTIONARY = {
 	TYPE_CHOICES: "choices",
 };
 
-var script_hashes = {};
+## FGD files to @include ahead of the project's entities (res:// paths), e.g. an addon's own FGD.
+## GodotVMF's base FGD always comes first.
+const INCLUDES_SETTING = "godot_vmf/fgd/includes";
+const BASE_FGD = "res://addons/godotfgd/godotvmf_base.fgd";
+const HEADER = "// Written by the GodotVMF FGD generator from %s. Edits are overwritten.\n";
 
-func get_aliases_scripts():
+func get_aliases_scripts() -> Array:
 	return VMFConfig.import.entity_aliases.values() \
 		.map(func(alias): return load(alias)._bundled.variants[0].resource_path);
 
-func is_entity_scripts_changed():
-	var files = DirAccess.get_files_at(VMFConfig.import.entities_folder);
-	files.append_array(get_aliases_scripts());
+## The project's FGD: in the game folder beside gameinfo.txt (where Hammer and Apex look), named
+## after the project.
+static func output_path() -> String:
+	var folder := VMFGameFolder.project_directory();
+	if folder == "": folder = "res://";
+	var name := str(ProjectSettings.get_setting("application/config/name", "")).to_snake_case();
+	var unsafe := RegEx.create_from_string("[^a-z0-9_]+");
+	name = unsafe.sub(name.to_lower(), "", true);
+	return folder.path_join((name if name != "" else "game") + ".fgd");
 
-	var is_changed = false;
-	for file in files:
-		if file.get_extension() != "gd": continue;
-		var path = VMFConfig.import.entities_folder + '/' + file if not file.begins_with("res://") else file;
-		var hash = FileAccess.get_md5(path);
-		var filename = path.get_file().replace(".gd", "");
+const IO_TYPES = ["void", "integer", "float", "bool", "string", "color255", "vector", "target_destination", "ehandle"];
 
-		if not is_changed:
-			is_changed = script_hashes.get(filename, "") != hash;
-		script_hashes[filename] = hash;
-	
-	return is_changed;
+## An input's or output's FGD type from its first argument: none or a name starting with "_" is
+## void; a name that is an FGD type is that type (func Open(float)); else the argument's static type;
+## else string.
+static func io_type(args: Array) -> String:
+	if args.is_empty(): return "void";
+	var name: String = args[0].name;
+	if name.begins_with("_"): return "void";
+	if IO_TYPES.has(name.to_lower()): return name.to_lower();
+	match args[0].type:
+		TYPE_INT: return "integer";
+		TYPE_FLOAT: return "float";
+		TYPE_BOOL: return "bool";
+		TYPE_VECTOR3: return "vector";
+		TYPE_COLOR: return "color255";
+		TYPE_OBJECT: return "target_destination";
+	return "string";
 
-func recompose_fgd(resources = null):
-	if not is_entity_scripts_changed(): return;
+## path relative to folder, both res:// paths, as an @include wants it.
+static func relative_path(folder: String, path: String) -> String:
+	var from := folder.trim_prefix("res://").split("/", false);
+	var to := path.trim_prefix("res://").split("/", false);
+	var common := 0;
+	while common < from.size() and common < to.size() - 1 and from[common] == to[common]:
+		common += 1;
+	var parts := PackedStringArray();
+	for i in range(common, from.size()): parts.append("..");
+	for i in range(common, to.size()): parts.append(to[i]);
+	return "/".join(parts);
 
-	var files = Array(DirAccess.get_files_at(VMFConfig.import.entities_folder));
-	var aliases = get_aliases_scripts().filter(func (file): not files.has(file));
-	files.append_array(aliases);
+static func include_paths() -> PackedStringArray:
+	var paths := PackedStringArray([BASE_FGD]);
+	for path in PackedStringArray(ProjectSettings.get_setting(INCLUDES_SETTING, PackedStringArray())):
+		if path == "" or paths.has(path): continue;
+		if not FileAccess.file_exists(path):
+			VMFLogger.warn("FGD include not found: " + path);
+			continue;
+		paths.append(path);
+	return paths;
 
-	var scripts: Array = files \
-		.filter(func(file): if file.get_extension() == "gd": return true) \
-		.map(func(file): 
-			var file_path = VMFConfig.import.entities_folder + '/' + file \
-				if not file.begins_with("res://") \
-				else file;
+func get_entity_scripts() -> Array:
+	var folder: String = VMFConfig.import.entities_folder;
+	var paths: Array = [];
+	if DirAccess.dir_exists_absolute(folder):
+		for file in DirAccess.get_files_at(folder):
+			if file.get_extension() == "gd": paths.append(folder.path_join(file));
+	for path in get_aliases_scripts():
+		if path.get_extension() == "gd" and not paths.has(path): paths.append(path);
 
-			return load(file_path);
-			) \
+	return paths \
+		.map(func(path): return load(path)) \
 		.filter(func(script):
-			var decorators = get_prop_decorators(script, script.get_global_name());
-			return decorators.has("entity"));
+			return script and get_prop_decorators(script, script.get_global_name()).has("entity"));
 
-	var file_name = ProjectSettings.get('application/config/name').to_snake_case();
-	var fgd_file = FileAccess.open('res://{0}.fgd'.format([file_name]), FileAccess.WRITE);
+func compose_fgd(target: String) -> String:
+	var text := HEADER % VMFConfig.import.entities_folder;
+	for path in include_paths():
+		text += "@include \"%s\"\n" % relative_path(target.get_base_dir(), path);
+	for script in get_entity_scripts():
+		text += "\n" + get_entity_description(script) + "\n";
+	return text;
 
-	for script in scripts:
-		fgd_file.store_string(get_entity_description(script) + "\n\n");
+func recompose_fgd(_resources = null):
+	var target := output_path();
+	var text := compose_fgd(target);
+	if FileAccess.file_exists(target) and FileAccess.get_file_as_string(target) == text: return;
 
+	var fgd_file = FileAccess.open(target, FileAccess.WRITE);
+	if not fgd_file:
+		VMFLogger.error("Can't write %s: %s" % [target, error_string(FileAccess.get_open_error())]);
+		return;
+	fgd_file.store_string(text);
 	fgd_file.close();
-	VMFLogger.log("FGD recomposed");
+	VMFLogger.log("FGD recomposed: " + target);
 
 func _enter_tree():
+	if not ProjectSettings.has_setting(INCLUDES_SETTING):
+		ProjectSettings.set_setting(INCLUDES_SETTING, PackedStringArray());
+	ProjectSettings.set_initial_value(INCLUDES_SETTING, PackedStringArray());
+	ProjectSettings.add_property_info({
+		"name": INCLUDES_SETTING,
+		"type": TYPE_PACKED_STRING_ARRAY,
+		"hint": PROPERTY_HINT_TYPE_STRING,
+		"hint_string": "%d/%d:*.fgd" % [TYPE_STRING, PROPERTY_HINT_FILE],
+	});
+
 	get_editor_interface().get_resource_filesystem().sources_changed.connect(recompose_fgd);
+	ProjectSettings.settings_changed.connect(recompose_fgd);
 	recompose_fgd();
 
 func _exit_tree():
 	get_editor_interface().get_resource_filesystem().sources_changed.disconnect(recompose_fgd);
+	ProjectSettings.settings_changed.disconnect(recompose_fgd);
 
 func get_flags(script: Script):
 	var index = 0;
@@ -135,8 +191,7 @@ func get_inputs(script: Script):
 		return get_prop_decorators(script, method.name).has("exposed")
 	) \
 	.map(func(method):
-		var type = method.args[0].name if method.args.size() > 0 else "void";
-		if type.begins_with("_"): type = "void";
+		var type = io_type(method.args);
 
 		var decorators = get_prop_decorators(script, method.name);
 		var name = decorators.get("exposed", "");
@@ -152,8 +207,7 @@ func get_inputs(script: Script):
 
 func get_outputs(script: Script):
 	var outputs = script.get_script_signal_list().map(func(sig):
-		var type = sig.args[0].name if sig.args.size() > 0 else "void";
-		if type.begins_with("_"): type = "void";
+		var type = io_type(sig.args);
 
 		return SIGNAL_TEMPLATE.format({
 			"signal_name": sig.name,

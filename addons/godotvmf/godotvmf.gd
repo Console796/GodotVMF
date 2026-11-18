@@ -47,8 +47,18 @@ func _enter_tree() -> void:
 	VMFConfig.define_project_settings()
 	VMFConfig.load_config()
 
+	# The project doubles as the level editor's game folder: keep its gameinfo.txt current.
+	VMFGameFolder.define_project_settings()
+	VMFGameFolder.update()
+	ProjectSettings.settings_changed.connect(_update_game_folder)
+
+func _update_game_folder() -> void:
+	VMFGameFolder.update()
+
 func _exit_tree():
 	VMFConfig.detach_signals()
+	if ProjectSettings.settings_changed.is_connected(_update_game_folder):
+		ProjectSettings.settings_changed.disconnect(_update_game_folder)
 	remove_custom_type("VMFNode");
 	remove_custom_type("ValveIONode");
 	

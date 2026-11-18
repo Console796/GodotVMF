@@ -34,6 +34,7 @@ A C# version of the plugin - [@parrssee/godotvmf-sharp](https://github.com/parrs
 - Surface props support
 - Material's compile properties support
 - FGD generator that compiles a FGD file based on source code of implemented entities in GDScript (see [here](https://github.com/H2xDev/GodotVMF/wiki/FGD-Generation))
+- Game folder for the level editor: writes a `gameinfo.txt` at `godot_vmf/import/gameinfo_path` (when it is inside the project and has none of its own), and the generated FGD lands beside it, `@include`-ing GodotVMF's base FGD (`addons/godotfgd/godotvmf_base.fgd`) and any addon FGDs listed in `godot_vmf/fgd/includes`
 
 <img src="https://github.com/user-attachments/assets/21084c3e-3530-45e5-8e05-d669d2a3ecf1" width="100%" />
 
