@@ -1,5 +1,8 @@
 @tool
 @icon("res://addons/godotvmf/icon.svg")
+## Root node of an imported VMF map. Holds the map's geometry (world brushes) and the entity nodes
+## built from the VMF file; set the VMF file and import options here, then use the import button to
+## (re)build the scene. Keep it at the origin.
 class_name VMFNode extends Node3D;
 
 enum MaterialImportMode {

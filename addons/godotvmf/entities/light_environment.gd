@@ -1,4 +1,6 @@
 @tool
+## A `light_environment` entity: the map's sun, as a DirectionalLight3D with the entity's colour,
+## brightness and pitch. Only the first one in a map is kept.
 class_name light_environment extends VMFEntityNode
 
 func _apply_entity(e):

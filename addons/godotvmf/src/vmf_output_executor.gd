@@ -1,3 +1,6 @@
+## Runs one entity output (a Source I/O connection) at run time: after `delay` seconds it calls the
+## `input` on the entities named `target`, passing `param`, up to `times` times. Created by the
+## entity nodes when an output fires; not placed by hand.
 class_name VMFOutputExecutor extends VMFEntityNode
 
 var target: String;

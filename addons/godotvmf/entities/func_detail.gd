@@ -1,4 +1,6 @@
 @tool
+## A `func_detail` brush entity: detail brushes that render as one mesh and, when enabled, get a
+## trimesh collider and a lightmap UV2. An empty brush removes itself.
 class_name func_detail extends VMFEntityNode
 
 func _entity_setup(entity: VMFEntity):

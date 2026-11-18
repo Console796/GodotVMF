@@ -1,4 +1,6 @@
 @tool
+## A Source `light_spot` entity: a spot light (SpotLight3D) with the entity's colour, cone angles
+## and falloff. Named `v_light_spot` in Godot to avoid a clash with built-in classes.
 class_name v_light_spot extends v_light
 
 func _entity_setup(entity: VMFEntity) -> void:

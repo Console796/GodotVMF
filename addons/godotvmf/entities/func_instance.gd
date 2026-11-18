@@ -1,4 +1,6 @@
 @tool
+## A `func_instance` entity: places another VMF (an instance file) at this entity's position,
+## importing it as a scene and adding it as a numbered child.
 class_name func_instance extends VMFEntityNode
 
 func _entity_setup(entity: VMFEntity):

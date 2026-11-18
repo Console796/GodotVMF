@@ -1,4 +1,6 @@
 @tool
+## A `prop_static` entity: a non-moving model prop. Like prop_studio, but its models are merged under
+## the map's `StaticProps` node, with fade distances (`fademindist`, `fademaxdist`) taken from the entity.
 class_name prop_static
 extends prop_studio
 

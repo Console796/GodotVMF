@@ -1,4 +1,8 @@
 @tool
+## Base class for a VMF entity in the scene. The importer instantiates one per entity, picks its
+## script by classname, and calls it with the entity's keyvalues (`entity`), brush geometry and
+## connections (outputs). Extend it to make your own entity class; the FGD generator exports its
+## `##`-documented vars as keyvalues.
 class_name VMFEntityNode extends Node3D
 
 const GROUP_PREFIX = 'vmf:';

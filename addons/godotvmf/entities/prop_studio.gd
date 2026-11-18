@@ -1,4 +1,6 @@
 @tool
+## A `prop_*` model entity: loads the model named by `model` from the models folder in the project
+## settings and places it with the entity's scale and skin.
 class_name prop_studio extends VMFEntityNode
 
 ## @exposed

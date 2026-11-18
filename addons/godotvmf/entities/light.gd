@@ -1,4 +1,6 @@
 @tool
+## A Source `light` entity: a point light (OmniLight3D) with the entity's colour, brightness and
+## falloff. Named `v_light` in Godot to avoid clashing with the built-in Light classes.
 class_name v_light extends VMFEntityNode
 
 class LightType extends VMFEntityType:

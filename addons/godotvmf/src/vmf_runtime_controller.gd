@@ -1,5 +1,8 @@
 # map.gd
 @tool
+## Loads a VMF map at run time and, when started from Hammer's Run Map (`--vmf <file>`), reloads
+## it and kills the previous game process, so you can test a map straight from the level editor.
+## Add it to a scene and read `hammer_setup` for the editor settings to use.
 class_name VMFRuntimeController extends Node3D;
 
 @export var default_map_name: String = "";

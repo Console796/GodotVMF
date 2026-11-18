@@ -1,4 +1,5 @@
 @tool
+## Deprecated: use VMFEntityNode. Logs a warning when it enters the tree.
 class_name ValveIONode extends VMFEntityNode
 
 func _ready():
