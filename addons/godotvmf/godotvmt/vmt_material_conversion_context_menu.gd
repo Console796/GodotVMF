@@ -191,8 +191,10 @@ func generate_vtf_file(texture: Texture2D) -> PackedByteArray:
 	bytes.append(0);
 
 	bytes += int_to_int32(7); # version major
-	bytes += int_to_int32(4); # version minor (7.4 is standard for Source)
-	bytes += int_to_int32(80); # header size for version 7.4
+	# 7.2: a 7.3+ header needs a resource dictionary (this writes none), and readers such as
+	# VTFLib/vtfpp (and so Apex) then find no image data.
+	bytes += int_to_int32(2); # version minor
+	bytes += int_to_int32(80); # header size
 
 	bytes += int_to_short(image.get_width()); # width
 	bytes += int_to_short(image.get_height()); # height
@@ -242,11 +244,8 @@ func generate_vtf_file(texture: Texture2D) -> PackedByteArray:
 	bytes += int_to_byte(lowres_height); # low res image height
 	bytes += int_to_byte(1); # depth
 	
-	# Padding 2 (3 bytes)
+	# 7.2 depth is a uint16: this byte and the first padding byte.
 	bytes += PackedByteArray([0, 0, 0]);
-	
-	# Resource Count (4 bytes)
-	bytes += int_to_int32(0);
 	
 	# Pad to 80 bytes header
 	while bytes.size() < 80:
